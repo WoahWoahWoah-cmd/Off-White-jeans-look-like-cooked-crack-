@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>@baselessopinion</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;500&display=swap');
+    /* Or replace the line above with Necto Mono if you host it:
+       @font-face { font-family: 'Necto Mono'; src: url('necto-mono.woff2') format('woff2'); } */
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background: #ffd1e9;
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      color: #111;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      cursor: none;
+    }
+    canvas { position: fixed; inset: 0; z-index: 1; }
+
+    .card {
+      position: relative;
+      z-index: 2;
+      background: rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(20px);
+      border: 2px solid rgba(0,0,0,0.9);
+      border-radius: 8px;
+      padding: 3rem 2.5rem 2.5rem;
+      max-width: 520px;
+      text-align: center;
+      box-shadow: 
+        12px 12px 0 #000,
+        inset 0 0 40px rgba(255,255,255,0.4);
+      animation: floatIn 1.8s ease-out;
+    }
+    @keyframes floatIn {
+      from { opacity: 0; transform: translateY(40px) scale(0.96); }
+    }
+
+    img {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 4px solid #000;
+      margin-bottom: 2rem;
+      box-shadow: 8px 8px 0 #000;
+    }
+    h1 {
+      font-size: 2rem;
+      font-weight: 500;
+      letter-spacing: 1px;
+      margin-bottom: 1.2rem;
+    }
+    p {
+      font-size: 1.05rem;
+      line-height: 1.8;
+      opacity: 0.88;
+    }
+    a { color: #000; text-decoration: underline 2px dashed; }
+  </style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div class="card">
+  <img src="https://scontent.fnbo15-1.fna.fbcdn.net/v/t39.30808-6/556133981_1821611198430730_7014737654586315506_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=aa7b47&_nc_ohc=J3ffYMPTVnkQ7kNvwFJ4zyH&_nc_oc=AdlCWxrcmF7gdyBDKxuar-orXZmfEDz2f27hK6LnRcQwXyUHm-SK-StuTtfkqz_X4Bw&_nc_zt=23&_nc_ht=scontent.fnbo15-1.fna&_nc_gid=x62jFDbJIMoAIS5iHd5PuA&oh=00_Afg6ccehfpTzqn7IE29mUxiEEoPau7DzvMOKfCzpUSzwxw&oe=6923D7E9" alt="you">
+  <h1>🗣️</h1>
+  <p>
+   .<br>
+Hi twn.
+The P on POTUS is for Piggy (specifically pigs in blankets).
+Bye twn. ✌️<br><br>
+    <a href="https://instagram.com/baselessopinion/">click if u 🥀</a>
+  </p>
+</div>
+
+<script>
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  let w, h, lines = [];
+  let mouse = {x: w/2, y: h/2};
+
+  const SPEED = 70;
+  const SEGMENT = 14;
+  const MAX = 65;
+  const ATTRACTION = 0.002; // subtle cursor pull
+
+  class Line {
+    constructor(x,y,dir) {
+      this.ox = this.x = x;
+      this.oy = this.y = y;
+      this.dir = dir;
+      this.progress = 0;
+      this.vertices = [];
+      this.done = false;
+    }
+    update(dt, mx, my) {
+      if (this.done) return;
+      this.progress += SPEED * dt;
+
+      // gentle attraction toward mouse
+      const dx = mx - this.x;
+      const dy = my - this.y;
+      if (Math.abs(dx) > 10) this.dir[0] += Math.sign(dx) * ATTRACTION;
+      if (Math.abs(dy) > 10) this.dir[1] += Math.sign(dy) * ATTRACTION;
+
+      while (this.progress >= SEGMENT) {
+        this.x += this.dir[0] * SEGMENT;
+        this.y += this.dir[1] * SEGMENT;
+        this.vertices.push([this.x, this.y]);
+        this.progress -= SEGMENT;
+
+        // 90° random turn
+        const horiz = this.dir[1] === 0;
+        this.dir = horiz ? [0, Math.random() < 0.5 ? 1 : -1]
+                         : [Math.random() < 0.5 ? 1 : -1, 0];
+
+        if (this.vertices.length > MAX || this.x < -200 || this.x > w+200 || this.y < -200 || this.y > h+200)
+          this.done = true;
+      }
+    }
+    draw() {
+      ctx.strokeStyle = '#00ff6a';
+      ctx.lineWidth = 2.5;
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = '#00ff6a';
+      ctx.beginPath();
+      ctx.moveTo(this.ox, this.oy);
+      this.vertices.forEach(v => ctx.lineTo(v[0], v[1]));
+      ctx.lineTo(this.x + this.dir[0] * this.progress, this.y + this.dir[1] * this.progress);
+      ctx.stroke();
+    }
+  }
+
+  function resize() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+    lines = [];
+    const d = 0.045;
+    for (let i = 0; i < h*d; i++) { lines.push(new Line(0, i/h * h, [1,0])); lines.push(new Line(w, i/h * h, [-1,0])); }
+    for (let i = 0; i < w*d; i++) { lines.push(new Line(i/w * w, 0, [0,1])); lines.push(new Line(i/w * w, h, [0,-1])); }
+  }
+
+  let last = 0;
+  function loop(t) {
+    const dt = Math.min((t-last)/1000, 0.1);
+    last = t;
+
+    ctx.fillStyle = 'rgba(255,209,233,0.04)';
+    ctx.fillRect(0,0,w,h);
+
+    lines.forEach(l => { l.update(dt, mouse.x, mouse.y); l.draw(); });
+    lines = lines.filter(l => !l.done);
+
+    requestAnimationFrame(loop);
+  }
+
+  window.addEventListener('mousemove', e => { mouse = {x: e.clientX, y: e.clientY}; });
+  window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(loop);
+</script>
+</body>
+</html>
